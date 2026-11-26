@@ -16,4 +16,4 @@ RUN mkdir -p download static/upload
 EXPOSE 8000
 
 # Запуск
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "10000"]
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8080"]
