@@ -1,4 +1,5 @@
 import uvicorn
+from contextlib import asynccontextmanager
 from database import  engine
 from fastapi import FastAPI
 from models import *
@@ -8,14 +9,21 @@ from urls import task_temp_url
 from fastapi.staticfiles import StaticFiles
 
 
-# Инициализация таблиц при запуске (до старта сервера)
-TaskModel.metadata.create_all(engine)
-UserModel.metadata.create_all(engine)
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Запуск
+    TaskModel.metadata.create_all(engine)
+    UserModel.metadata.create_all(engine)
+    print("Tables created successfully")
+    yield
+    # Очистка при остановке
+    print("Shutting down...")
 
 
 app = FastAPI(
     title="Logistic",
-    version="0.0.1"
+    version="0.0.1",
+    lifespan=lifespan
 )
 
 app.include_router(router)
@@ -43,11 +51,3 @@ if __name__ == '__main__':
     print('Start Server (dev mode)')
     uvicorn.run('main:app', port=8000, host='127.0.0.1', reload=True)
     print('Server Stop')
-    print('Start Server (dev mode)')
-    uvicorn.run('main:app', port=8000, host='127.0.0.1', reload=True)
-    print('Server Stop')
-
-
-# Инициализация таблиц при запуске (для production)
-TaskModel.metadata.create_all(engine)
-UserModel.metadata.create_all(engine)
