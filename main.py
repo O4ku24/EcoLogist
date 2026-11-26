@@ -41,6 +41,7 @@ def index():
     }
 
 
+@app.get('/health', include_in_schema=False)
 @app.get('/health/')
 def health_check():
     """Проверка, что сервер работает"""
