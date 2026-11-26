@@ -3,17 +3,11 @@ from fastapi.responses import JSONResponse
 from schemas import TaskCreateSchema, TaskUpdateSchema, TaskSchema, UserAddSchema, UserCreateSchema, UserUpdateSchema
 from models import TaskModel, UserModel, RangUser
 from sqlalchemy.orm import Session
-from sqlalchemy import select, insert, update, delete
+from sqlalchemy import select, insert, update, delete, desc
 from database import engine
 from datetime import datetime
 
 router = APIRouter(prefix='/api/tasks')
-
-
-@router.get('/health/')
-def health_check():
-    """Проверка, что сервер работает"""
-    return {"status": "ok", "message": "EcoLogist FastAPI is running"}
 
 
 @router.get('/create/')
@@ -39,7 +33,7 @@ def get_list_task(request: Request):
 def add_task(request: Request, task: TaskCreateSchema):
     """Создать новую задачу"""
     with Session(engine) as session:
-        stmt = select(TaskModel).order_by(TaskModel.task_id).descending().limit(1)
+        stmt = select(TaskModel).order_by(TaskModel.task_id.desc()).limit(1)
         last = session.execute(stmt).scalar_one_or_none()
         new_id = (last.task_id + 1) if last else 1
 
