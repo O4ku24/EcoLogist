@@ -1,5 +1,4 @@
 import uvicorn
-from contextlib import asynccontextmanager
 from database import  engine
 from fastapi import FastAPI
 from models import *
@@ -9,21 +8,9 @@ from urls import task_temp_url
 from fastapi.staticfiles import StaticFiles
 
 
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    # Запуск
-    TaskModel.metadata.create_all(engine)
-    UserModel.metadata.create_all(engine)
-    print("Tables created successfully")
-    yield
-    # Очистка при остановке
-    print("Shutting down...")
-
-
 app = FastAPI(
     title="Logistic",
-    version="0.0.1",
-    lifespan=lifespan
+    version="0.0.1"
 )
 
 app.include_router(router)
