@@ -5,5 +5,4 @@ __pycache__/
 .db.sqlite
 .db.sqlite-journal
 static/upload/*.xlsx
-download/*.xlsx
 .env
