@@ -30,3 +30,13 @@ class UserModel(Model):
     user_name: Mapped[str]
     user_password: Mapped[str]
     rang_user: Mapped[RangUser]
+
+
+class AddressModel(Model):
+    __tablename__ = 'addresses_table'
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    address: Mapped[str]
+    buyer: Mapped[str]
+    driver: Mapped[str] = mapped_column(default='')
+    district: Mapped[str] = mapped_column(default='')

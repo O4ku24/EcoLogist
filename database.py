@@ -11,3 +11,11 @@ engine = create_engine(
 
 class Model(DeclarativeBase):
     pass
+
+
+# Импортируем все модели, чтобы они были зарегистрированы
+from models import TaskModel, UserModel, AddressModel  # noqa: F401
+
+
+# Создаём все таблицы
+Model.metadata.create_all(engine)

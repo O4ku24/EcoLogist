@@ -6,3 +6,4 @@ __pycache__/
 .db.sqlite-journal
 static/upload/*.xlsx
 .env
+.test.py

@@ -1,0 +1,194 @@
+{% extends "base.html" %}
+
+
+{%block body%}
+<div class="row justify-content-center">
+    <div class="col-md-12">
+
+        {% if error %}
+            <div class="alert alert-danger text-center">{{ error }}</div>
+        {% else %}
+            <h2 class="text-center mb-4">Результаты обработки</h2>
+
+            <!-- Результаты -->
+            <div class="card shadow-sm mb-3">
+                <div class="card-header bg-success text-white">
+                    <strong>Результаты</strong>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <h4 class="text-primary">Найдено: {{ found }}</h4>
+                        </div>
+                        <div class="col-md-6">
+                            <h4 class="text-danger">Не найдено: {{ not_found }}</h4>
+                        </div>
+                    </div>
+                    <hr>
+                    <h5 class="mb-2">Суммы по районам</h5>
+                    <div class="row">
+                        {% for district, amount in district_sums.items() %}
+                        <div class="col-md-4 mb-2">
+                            <span class="text-muted">{{ district }}:</span>
+                            <span class="text-success">{{ "%.2f"|format(amount) }}</span>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    <hr>
+                    <h4 class="text-center text-success">Итого: {{ "%.2f"|format(total_sum) }}</h4>
+                </div>
+            </div>
+
+            <!-- Таблица результатов VPR -->
+            <div class="card shadow-sm mb-3">
+                <div class="card-header bg-primary text-white">
+                    <strong>Результаты ВПР — редактирование водителей ({{ rows|length }} строк)</strong>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive" style="max-height: 600px; overflow-y: auto;">
+                        <table class="table table-striped table-hover mb-0">
+                            <thead class="table-light sticky-top">
+                                <tr>
+                                    <th>№</th>
+                                    <th>Адрес</th>
+                                    <th>Покупатель</th>
+                                    <th>Район</th>
+                                    <th>Сумма</th>
+                                    <th style="min-width: 300px;">Водитель</th>
+                                    <th>Статус</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for row in rows %}
+                                <tr class="{% if not row.found %}table-warning{% endif %}">
+                                    <td>{{ row.num }}</td>
+                                    <td>{{ row.address }}</td>
+                                    <td>{{ row.buyer }}</td>
+                                    <td>{{ row.district }}</td>
+                                    <td>{{ "%.2f"|format(row.amount) }}</td>
+                                    <td>
+                                        <select class="form-select form-select-sm driver-input"
+                                                data-address="{{ row.address }}"
+                                                data-address-id="{{ row.address_id }}">
+                                            <option value="">— Выбрать —</option>
+                                            {% for driver in drivers %}
+                                            <option value="{{ driver }}" {% if row.driver == driver %}selected{% endif %}>{{ driver }}</option>
+                                            {% endfor %}
+                                        </select>
+                                    </td>
+                                    <td>
+                                        {% if row.found %}
+                                            <span class="badge bg-success">Найден</span>
+                                        {% else %}
+                                            <span class="badge bg-danger">Не найден</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Кнопки -->
+            <div class="text-center mt-4">
+                <button id="generate-btn" class="btn btn-success btn-lg">
+                    Сгенерировать отчёт
+                </button>
+                <a href="/tasklist/" class="btn btn-outline-secondary btn-lg ms-2">
+                    Загрузить ещё файлы
+                </a>
+            </div>
+        {% endif %}
+
+    </div>
+</div>
+
+<!-- Скрытое поле с report_key -->
+<input type="hidden" id="report-key" value="{{ report_key }}">
+
+<!-- JavaScript для обновления водителей и генерации отчёта -->
+<script>
+// Обновление водителей
+document.addEventListener('DOMContentLoaded', function() {
+    const selects = document.querySelectorAll('.driver-input');
+    
+    selects.forEach(select => {
+        select.addEventListener('change', async function() {
+            const addressId = this.dataset.addressId;
+            const address = this.dataset.address;
+            const driver = this.value;
+            
+            // Если адрес не найден в БД
+            if (!addressId) {
+                if (driver && !confirm('Адрес не найден в базе. Водитель будет назначен вручную. Продолжить?')) {
+                    this.value = '';
+                    return;
+                }
+                return; // Адрес не найден, не отправляем запрос
+            }
+            
+            try {
+                const response = await fetch('/tasklist/update-driver/', {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ id: addressId, driver: driver })
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    this.style.borderColor = '#28a745';
+                    this.style.backgroundColor = '#d4edda';
+                    setTimeout(() => {
+                        this.style.borderColor = '';
+                        this.style.backgroundColor = '';
+                    }, 2000);
+                } else {
+                    alert('Ошибка: ' + result.detail);
+                }
+            } catch (error) {
+                alert('Ошибка подключения к серверу');
+            }
+        });
+    });
+    
+    // Генерация отчёта
+    const generateBtn = document.getElementById('generate-btn');
+    generateBtn.addEventListener('click', async function() {
+        this.disabled = true;
+        this.textContent = 'Генерация...';
+        
+        const reportKey = document.getElementById('report-key').value;
+        
+        try {
+            const response = await fetch('/generate-report/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ report_key: reportKey })
+            });
+            
+            const result = await response.json();
+            
+            if (response.ok) {
+                // Перенаправляем на страницу отчёта
+                window.location.href = '/tasklist/report/' + encodeURIComponent(result.report_filename);
+            } else {
+                alert('Ошибка: ' + result.detail);
+                this.disabled = false;
+                this.textContent = 'Сгенерировать отчёт';
+            }
+        } catch (error) {
+            alert('Ошибка подключения к серверу');
+            this.disabled = false;
+            this.textContent = 'Сгенерировать отчёт';
+        }
+    });
+});
+</script>
+{%endblock%}
